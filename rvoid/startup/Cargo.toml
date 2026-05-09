@@ -4,7 +4,7 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-rvoid-stub-entry = { path = "stub/entry_macro" }
+rvoid-stub-entry = { path = "stub/entry" }
 
 rvoid-uefi = { path = "uefi", optional = true }
 
