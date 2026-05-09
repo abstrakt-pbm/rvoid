@@ -1,10 +1,11 @@
 [package]
-name = "rvoid-example"
+name = "rvoid-startup-uefi"
 version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-rvoid = { path = "rvoid" }
+rvoid-uefi-entry = { path = "entry" }
+rvoid-uefi-backend = { path = "backend" }
 
 [profile.dev]
 panic = "abort"

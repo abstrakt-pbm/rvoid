@@ -1,0 +1,18 @@
+[package]
+name = "rvoid-example"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+rvoid = { path = "../rvoid", features = ["uefi"] }
+
+[profile.dev]
+panic = "abort"
+lto = true
+overflow-checks = false
+
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1

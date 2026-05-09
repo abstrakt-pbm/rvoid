@@ -1,0 +1,8 @@
+[package]
+name = "rvoid-uefi-backend"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+rvoid-core = { path = "../../../core" }
+uefi = "0.37"

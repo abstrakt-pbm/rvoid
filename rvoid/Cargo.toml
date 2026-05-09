@@ -4,14 +4,15 @@ version = "0.0.1"
 edition = "2024"
 
 [dependencies]
+rvoid-core = { path = "core" }
+rvoid-entry = { path = "entry" }
 
-[profile.dev]
-panic = "abort"
-lto = true
-overflow-checks = false
+rvoid-uefi-backend = { path = "startup/uefi/backend", optional = true }
 
+[features]
+default = []
 
-[profile.release]
-panic = "abort"
-lto = true
-codegen-units = 1
+uefi = [
+    "rvoid-entry/uefi",
+    "dep:rvoid-uefi-backend",
+]
