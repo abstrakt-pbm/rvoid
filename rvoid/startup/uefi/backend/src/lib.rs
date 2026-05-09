@@ -67,7 +67,7 @@ unsafe fn uefi_puts(system_table: *mut EfiSystemTable, string: *const u16) {
     }
 
     unsafe {
-        ((*con_out).output_string)(con_out, string);
+        let _ = ((*con_out).output_string)(con_out, string);
     }
 }
 
@@ -78,11 +78,11 @@ pub unsafe fn startup(
     let _ = image_handle;
 
     const MSG: &[u16] = &[
-        b'r' as u16,
-        b'v' as u16,
-        b'o' as u16,
-        b'i' as u16,
-        b'd' as u16,
+        b'R' as u16,
+        b'V' as u16,
+        b'O' as u16,
+        b'I' as u16,
+        b'D' as u16,
         b':' as u16,
         b' ' as u16,
         b'U' as u16,

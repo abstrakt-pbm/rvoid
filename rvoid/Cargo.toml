@@ -5,16 +5,11 @@ edition = "2024"
 
 [dependencies]
 rvoid-core = { path = "core" }
-
-rvoid-stub-entry = { path = "startup/stub/entry_macro" }
-
-rvoid-uefi-entry = { path = "startup/uefi/entry_macro", optional = true }
-rvoid-uefi-backend = { path = "startup/uefi/backend", optional = true }
+rvoid-startup = { path = "startup" }
 
 [features]
 default = []
 
 uefi = [
-    "dep:rvoid-uefi-entry",
-    "dep:rvoid-uefi-backend",
+    "rvoid-startup/uefi",
 ]

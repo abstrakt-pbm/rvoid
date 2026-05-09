@@ -1,10 +1,10 @@
 [package]
-name = "rvoid-startup-uefi"
+name = "rvoid-uefi"
 version = "0.0.1"
 edition = "2024"
 
 [dependencies]
-rvoid-uefi-entry = { path = "entry" }
+rvoid-uefi-entry = { path = "entry_macro" }
 rvoid-uefi-backend = { path = "backend" }
 
 [profile.dev]
