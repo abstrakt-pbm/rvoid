@@ -1,10 +1,6 @@
 #![no_std]
 
-#[derive(Clone, Copy)]
-pub struct SystemInfo;
+pub mod memory;
+pub mod system_info;
 
-impl SystemInfo {
-    pub const fn empty() -> Self {
-        Self
-    }
-}
+pub use self::system_info::SystemInfo;
