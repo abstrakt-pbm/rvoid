@@ -12,6 +12,24 @@ mod tests {
         }
     }
 
+    fn physical_memory_region(start_addr: usize, end_addr: usize) -> PhysicalMemoryRegion {
+        PhysicalMemoryRegion {
+            start_addr,
+            end_addr,
+        }
+    }
+
+    fn assert_allocated_region(
+        allocated: &AllocatedPhysicalMemoryRegion,
+        start_addr: usize,
+        end_addr: usize,
+    ) {
+        assert_eq!(
+            allocated.region(),
+            physical_memory_region(start_addr, end_addr)
+        );
+    }
+
     fn create_regions_array<'a, const N: usize>(
         storage: &'a mut [MaybeUninit<MemoryRegion>; N],
     ) -> RegionsArray<'a> {
@@ -111,13 +129,7 @@ mod tests {
 
         let allocated = allocator.allocate_region(20, 1).unwrap();
 
-        assert_eq!(
-            allocated,
-            PhysicalMemoryRegion {
-                start_addr: 100,
-                end_addr: 119,
-            }
-        );
+        assert_allocated_region(&allocated, 100, 119);
 
         assert_eq!(allocator.used_regions.len(), 1);
         assert_eq!(allocator.used_regions[0], memory_region(100, 119));
@@ -139,13 +151,7 @@ mod tests {
 
         let allocated = allocator.allocate_region(16, 64).unwrap();
 
-        assert_eq!(
-            allocated,
-            PhysicalMemoryRegion {
-                start_addr: 128,
-                end_addr: 143,
-            }
-        );
+        assert_allocated_region(&allocated, 128, 143);
 
         assert_eq!(allocator.used_regions.len(), 1);
         assert_eq!(allocator.used_regions[0], memory_region(128, 143));
@@ -168,13 +174,7 @@ mod tests {
 
         let allocated = allocator.allocate_region(100, 1).unwrap();
 
-        assert_eq!(
-            allocated,
-            PhysicalMemoryRegion {
-                start_addr: 100,
-                end_addr: 199,
-            }
-        );
+        assert_allocated_region(&allocated, 100, 199);
 
         assert_eq!(allocator.used_regions.len(), 1);
         assert_eq!(allocator.used_regions[0], memory_region(100, 199));
@@ -200,13 +200,7 @@ mod tests {
 
         let allocated = allocator.allocate_region(20, 1).unwrap();
 
-        assert_eq!(
-            allocated,
-            PhysicalMemoryRegion {
-                start_addr: 100,
-                end_addr: 119,
-            }
-        );
+        assert_allocated_region(&allocated, 100, 119);
 
         assert_eq!(allocator.used_regions.len(), 1);
         assert_eq!(allocator.used_regions[0], memory_region(100, 119));
@@ -291,5 +285,134 @@ mod tests {
         assert_eq!(allocator.free_regions.len(), 1);
         assert_eq!(allocator.free_regions[0], memory_region(100, 199));
         assert_eq!(allocator.used_regions.len(), 0);
+    }
+
+    #[test]
+    fn free_region_returns_allocated_region_to_free_regions() {
+        let mut free_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut used_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut allocator = create_allocator(&mut free_storage, &mut used_storage);
+
+        allocator
+            .free_regions
+            .insert_region(memory_region(100, 199))
+            .unwrap();
+
+        let allocated = allocator.allocate_region(20, 1).unwrap();
+
+        assert_eq!(allocator.used_regions.len(), 1);
+        assert_eq!(allocator.used_regions[0], memory_region(100, 119));
+        assert_eq!(allocator.free_regions.len(), 1);
+        assert_eq!(allocator.free_regions[0], memory_region(120, 199));
+
+        let result = allocator.free_region(allocated);
+
+        assert!(result.is_ok());
+
+        assert_eq!(allocator.used_regions.len(), 0);
+
+        assert_eq!(allocator.free_regions.len(), 1);
+        assert_eq!(allocator.free_regions[0], memory_region(100, 199));
+    }
+
+    #[test]
+    fn free_region_merges_with_left_and_right_free_regions() {
+        let mut free_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut used_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut allocator = create_allocator(&mut free_storage, &mut used_storage);
+
+        allocator
+            .free_regions
+            .insert_region(memory_region(100, 199))
+            .unwrap();
+
+        let allocated = allocator.allocate_region(16, 64).unwrap();
+
+        assert_allocated_region(&allocated, 128, 143);
+
+        assert_eq!(allocator.used_regions.len(), 1);
+        assert_eq!(allocator.used_regions[0], memory_region(128, 143));
+
+        assert_eq!(allocator.free_regions.len(), 2);
+        assert_eq!(allocator.free_regions[0], memory_region(100, 127));
+        assert_eq!(allocator.free_regions[1], memory_region(144, 199));
+
+        let result = allocator.free_region(allocated);
+
+        assert!(result.is_ok());
+
+        assert_eq!(allocator.used_regions.len(), 0);
+
+        assert_eq!(allocator.free_regions.len(), 1);
+        assert_eq!(allocator.free_regions[0], memory_region(100, 199));
+    }
+
+    #[test]
+    fn free_region_returns_error_when_region_is_not_in_used_regions() {
+        let mut free_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut used_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut allocator = create_allocator(&mut free_storage, &mut used_storage);
+
+        allocator
+            .free_regions
+            .insert_region(memory_region(100, 199))
+            .unwrap();
+
+        let allocated = allocator.allocate_region(20, 1).unwrap();
+
+        allocator
+            .used_regions
+            .delete_region(memory_region(100, 119))
+            .unwrap();
+
+        let result = allocator.free_region(allocated);
+
+        assert!(matches!(
+            result,
+            Err(PhysicalMemoryAllocatorError::RegionWasNotAllocated)
+        ));
+
+        assert_eq!(allocator.used_regions.len(), 0);
+
+        assert_eq!(allocator.free_regions.len(), 1);
+        assert_eq!(allocator.free_regions[0], memory_region(120, 199));
+    }
+
+    #[test]
+    fn free_region_does_not_change_state_when_free_regions_storage_is_full() {
+        let mut free_storage = [MaybeUninit::<MemoryRegion>::uninit(); 1];
+        let mut used_storage = [MaybeUninit::<MemoryRegion>::uninit(); 4];
+        let mut allocator = create_allocator(&mut free_storage, &mut used_storage);
+
+        allocator
+            .free_regions
+            .insert_region(memory_region(100, 199))
+            .unwrap();
+
+        let allocated = allocator.allocate_region(100, 1).unwrap();
+
+        assert_eq!(allocator.free_regions.len(), 0);
+        assert_eq!(allocator.used_regions.len(), 1);
+        assert_eq!(allocator.used_regions[0], memory_region(100, 199));
+
+        allocator
+            .free_regions
+            .insert_region(memory_region(300, 399))
+            .unwrap();
+
+        let result = allocator.free_region(allocated);
+
+        assert!(matches!(
+            result,
+            Err(PhysicalMemoryAllocatorError::RegionsArray(
+                RegionsArrayError::StorageFull
+            ))
+        ));
+
+        assert_eq!(allocator.used_regions.len(), 1);
+        assert_eq!(allocator.used_regions[0], memory_region(100, 199));
+
+        assert_eq!(allocator.free_regions.len(), 1);
+        assert_eq!(allocator.free_regions[0], memory_region(300, 399));
     }
 }

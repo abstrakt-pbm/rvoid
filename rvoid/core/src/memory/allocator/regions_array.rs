@@ -226,6 +226,15 @@ impl<'metadata> RegionsArray<'metadata> {
         Ok(())
     }
 
+    pub(super) fn contains_region(&self, region: MemoryRegion) -> bool {
+        for index in 0..self.len {
+            if self[index] == region {
+                return true;
+            }
+        }
+        false
+    }
+
     // find regions id overlaping with new created region
     pub(super) fn find_overlap_regions(&self, region: &MemoryRegion) -> OverlapRegionIds {
         let mut result = OverlapRegionIds {
@@ -298,6 +307,7 @@ impl<'metadata> RegionsArray<'metadata> {
         self.len += 1;
         Ok(())
     }
+
     fn write_region_unchecked(&mut self, index: usize, region: MemoryRegion) {
         unsafe {
             self.ptr.as_ptr().add(index).write(MaybeUninit::new(region));
