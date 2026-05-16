@@ -12,17 +12,26 @@ pub fn entry(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         #[unsafe(no_mangle)]
         pub extern "efiapi" fn efi_main(
-            image_handle: ::rvoid::startup::uefi::EfiHandle,
-            system_table: *mut ::rvoid::startup::uefi::EfiSystemTable,
-        ) -> ::rvoid::startup::uefi::EfiStatus {
-            let system = unsafe {
-                ::rvoid::startup::uefi::startup(
-                    image_handle,
-                    system_table,
-                )
-            };
+            image_handle: ::rvoid::startup::uefi::uefi::Handle,
+            system_table: *mut ::core::ffi::c_void,
+        ) -> ::rvoid::startup::uefi::uefi::Status {
+            unsafe {
+                ::rvoid::startup::uefi::uefi::boot::set_image_handle(image_handle);
 
-            #user_fn_name(system)
+                let system_table = system_table as *const ::core::ffi::c_void;
+
+                ::rvoid::startup::uefi::uefi::table::set_system_table(
+                    system_table.cast(),
+                );
+            }
+
+            ::rvoid::startup::uefi::uefi::helpers::init().unwrap();
+
+            let system = ::rvoid::startup::uefi::startup();
+
+            #user_fn_name(system);
+
+            ::rvoid::startup::uefi::uefi::Status::SUCCESS
         }
     };
 

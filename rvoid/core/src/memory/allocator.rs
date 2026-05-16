@@ -1,6 +1,9 @@
+mod global;
 mod regions_array;
 
 use self::regions_array::{MemoryRegion, RegionsArray, RegionsArrayError};
+
+pub use self::global::{allocate_physical_region, free_physical_region, init_physical_allocator};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhysicalMemoryAllocatorError {
